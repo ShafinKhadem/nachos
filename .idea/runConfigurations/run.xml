@@ -9,7 +9,7 @@
     <option name="INTERPRETER_PATH" value="/bin/bash" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <method v="2">
-      <option name="RunConfigurationTask" enabled="true" />
+      <option name="RunConfigurationTask" enabled="true" run_configuration_name="make" run_configuration_type="ShConfigurationType" />
     </method>
   </configuration>
 </component>
