@@ -193,6 +193,9 @@ public class KThread {
 
         currentThread.status = statusFinished;
 
+        if (currentThread.waitingParent != null) {
+            currentThread.waitingParent.ready();
+        }
         sleep();
     }
 
@@ -275,7 +278,13 @@ public class KThread {
         Lib.debug(dbgThread, "Joining to thread: " + toString());
 
         Lib.assertTrue(this != currentThread);
-
+        boolean status = Machine.interrupt().disable();
+        if (this.status != statusFinished) {
+            Lib.assertTrue(this.waitingParent == null);
+            this.waitingParent = currentThread;
+            sleep();
+        }
+        Machine.interrupt().restore(status);
     }
 
     /**
@@ -329,10 +338,6 @@ public class KThread {
      * The state of the previously running thread must already have been
      * changed from running to blocked or ready (depending on whether the
      * thread is sleeping or yielding).
-     *
-     * @param finishing <tt>true</tt> if the current thread is
-     *                  finished, and should be destroyed by the new
-     *                  thread.
      */
     private void run() {
         Lib.assertTrue(Machine.interrupt().disabled());
@@ -447,4 +452,6 @@ public class KThread {
     private static KThread currentThread = null;
     private static KThread toBeDestroyed = null;
     private static KThread idleThread = null;
+
+    private KThread waitingParent = null;
 }
