@@ -1,6 +1,6 @@
 package nachos.threads;
 
-import nachos.machine.*;
+import nachos.machine.Lib;
 
 /**
  * A <i>communicator</i> allows threads to synchronously exchange 32-bit
@@ -14,6 +14,12 @@ public class Communicator {
      * Allocate a new communicator.
      */
     public Communicator() {
+        lock = new Lock();
+        speakerPresent = listenerPresent = false;
+        waitingSpeaker = new Condition2(lock);
+        waitingListener = new Condition2(lock);
+        waitingForListener = new Condition2(lock);
+        waitingForSpeaker = new Condition2(lock);
     }
 
     /**
@@ -27,6 +33,20 @@ public class Communicator {
      * @param word the integer to transfer.
      */
     public void speak(int word) {
+        lock.acquire();
+        if (speakerPresent) waitingSpeaker.sleep();
+        Lib.assertTrue(!speakerPresent);
+        speakerPresent = true;
+
+        if (!listenerPresent) waitingForListener.sleep();
+        System.out.println(KThread.currentThread().getName() + " " +word);
+        this.word = word;
+        waitingForSpeaker.wake();
+        waitingForListener.sleep();
+
+        speakerPresent = false;
+        waitingSpeaker.wake();
+        lock.release();
     }
 
     /**
@@ -36,6 +56,58 @@ public class Communicator {
      * @return the integer transferred.
      */
     public int listen() {
-        return 0;
+        int ret = -1;
+        lock.acquire();
+        if (listenerPresent) waitingListener.sleep();
+        Lib.assertTrue(!listenerPresent);
+        listenerPresent = true;
+
+        waitingForListener.wake();
+        waitingForSpeaker.sleep();
+        ret = this.word;
+        System.out.println(KThread.currentThread().getName() + " " +ret);
+        waitingForListener.wake();
+
+        listenerPresent = false;
+        waitingListener.wake();
+        lock.release();
+        return ret;
     }
+
+    public static void selfTest() {
+        System.out.println("\n--------------Testing Communicator ------------------\n");
+
+        Communicator communicator = new Communicator();
+
+        KThread speak1 = new KThread(() -> {
+            communicator.speak(1);
+        }).setName("speak1");
+        speak1.fork();
+
+        KThread speak2 = new KThread(() -> {
+            communicator.speak(2);
+        }).setName("speak2");
+        speak2.fork();
+
+        KThread listen1 = new KThread(communicator::listen).setName("listen1");
+        listen1.fork();
+
+        KThread speak3 = new KThread(() -> {
+            communicator.speak(3);
+        }).setName("speak3");
+        speak3.fork();
+
+        KThread listen2 = new KThread(communicator::listen).setName("listen2");
+        listen2.fork();
+
+        KThread listen3 = new KThread(communicator::listen).setName("listen3");
+        listen3.fork();
+
+        listen3.join();
+    }
+
+    private int word;
+    private Lock lock;
+    private boolean speakerPresent, listenerPresent;
+    private Condition2 waitingSpeaker, waitingListener, waitingForListener, waitingForSpeaker;
 }
