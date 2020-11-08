@@ -1,6 +1,7 @@
 package nachos.threads;
 
 import nachos.machine.*;
+import java.util.TreeSet;
 
 /**
  * Uses the hardware timer to provide preemption, and to allow threads to sleep
@@ -15,8 +16,17 @@ public class Alarm {
      * alarm.
      */
     public Alarm() {
+        pending = new TreeSet<>();
         Machine.timer().setInterruptHandler(new Runnable() {
+
             public void run() {
+                boolean origState = Machine.interrupt().disable();
+                if(pending.size() > 0 && pending.first().time <= Machine.timer().getTime()) {
+                    Alarm.PendingAlarm pendingAlarm = pending.first();
+                    pendingAlarm.getHandler().ready();
+                    pending.remove(pendingAlarm);
+                }
+                Machine.interrupt().restore(origState);
                 timerInterrupt();
             }
         });
@@ -32,6 +42,7 @@ public class Alarm {
         KThread.currentThread().yield();
     }
 
+
     /**
      * Put the current thread to sleep for at least <i>x</i> ticks,
      * waking it up in the timer interrupt handler. The thread must be
@@ -45,10 +56,102 @@ public class Alarm {
      * @param x the minimum number of clock ticks to wait.
      * @see nachos.machine.Timer#getTime()
      */
+
     public void waitUntil(long x) {
-        // for now, cheat just to get something working (busy waiting is bad)
-        long wakeTime = Machine.timer().getTime() + x;
-        while (wakeTime > Machine.timer().getTime())
-            KThread.yield();
+        KThread waitingThread = KThread.currentThread();
+        boolean origState = Machine.interrupt().disable();
+        schedule(x, waitingThread);
+        KThread.sleep();
+        Machine.interrupt().restore(origState);
     }
+
+    /**
+     * <h1>Part1 :: Task3</h1>
+     *  Implementation is similar to {@link nachos.machine.Interrupt}
+     */
+
+    private void schedule(long when, KThread handler) {
+        Lib.assertTrue(when > 0);
+        long time = Machine.timer().getTime() + when;
+        Alarm.PendingAlarm toOccur = new Alarm.PendingAlarm(time, handler);
+        pending.add(toOccur);
+    }
+
+
+    private class PendingAlarm implements Comparable {
+        PendingAlarm(long time, KThread handler) {
+            this.time = time;
+            this.handler = handler;
+            this.id = numPendingAlarmsCreated++;
+        }
+
+        public int compareTo(Object o) {
+            Alarm.PendingAlarm toOccur = (Alarm.PendingAlarm) o;
+
+            // can't return 0 for unequal objects, so check all fields
+            if (time < toOccur.time)
+                return -1;
+            else if (time > toOccur.time)
+                return 1;
+            else if (id < toOccur.id)
+                return -1;
+            else if (id > toOccur.id)
+                return 1;
+            else
+                return 0;
+        }
+
+        long time;
+        KThread handler;
+        private long id;
+
+        public KThread getHandler() {
+            return handler;
+        }
+    }
+
+    private static class PingTest implements Runnable {
+        PingTest(int which, long duration) {
+            this.which = which;
+            this.duration = duration;
+        }
+
+        public void run() {
+            long start = Machine.timer().getTime();
+            boolean origState = Machine.interrupt().disable();
+            ThreadedKernel.alarm.waitUntil(duration);
+            Machine.interrupt().restore(origState);
+            long end = Machine.timer().getTime();
+            System.out.println("Alarm test" + which
+                    + " Start: " + start
+                    + " End: " + Machine.timer().getTime()
+                    + " Difference: " + (end - start));
+        }
+
+        private int which;
+        private long duration;
+    }
+
+    /**
+     * Tests whether this module is working.
+     */
+    public static void selfTest() {
+        System.out.println("===Alarm Test===");
+        KThread thread1 = new KThread(new Alarm.PingTest(1, 500)).setName("alarm thread");
+        KThread thread2 = new KThread(new Alarm.PingTest(2, 200)).setName("alarm thread");
+        KThread thread3 = new KThread(new Alarm.PingTest(3, 1000)).setName("alarm thread");
+        KThread thread4 = new KThread(new Alarm.PingTest(4, 100)).setName("alarm thread");
+        thread1.fork();
+        thread2.fork();
+        thread3.fork();
+        thread4.fork();
+        thread1.join();
+        thread2.join();
+        thread3.join();
+        thread4.join();
+    }
+
+    int numPendingAlarmsCreated = 0;
+    private TreeSet<Alarm.PendingAlarm> pending;
+
 }
