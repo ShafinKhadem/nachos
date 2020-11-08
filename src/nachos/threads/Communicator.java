@@ -103,7 +103,23 @@ public class Communicator {
         KThread listen3 = new KThread(communicator::listen).setName("listen3");
         listen3.fork();
 
-        listen3.join();
+        KThread listen4 = new KThread(communicator::listen).setName("listen4");
+        listen4.fork();
+
+        KThread listen5 = new KThread(communicator::listen).setName("listen5");
+        listen5.fork();
+
+        KThread speak4 = new KThread(() -> {
+            communicator.speak(4);
+        }).setName("speak4");
+        speak4.fork();
+
+        KThread speak5 = new KThread(() -> {
+            communicator.speak(5);
+        }).setName("speak5");
+        speak5.fork();
+
+        listen5.join();
     }
 
     private int word;
