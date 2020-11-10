@@ -411,6 +411,16 @@ public class KThread {
 
         new KThread(new PingTest(1)).setName("forked thread").fork();
         new PingTest(0).run();
+
+        System.out.println("\n--------------Testing KThread.join initiated------------------\n");
+
+        KThread t2 = new KThread(new PingTest(2));
+        System.out.println("forking thread 2...");
+        t2.fork();
+        t2.join();
+        System.out.println("joined with thread 2");
+
+        System.out.println("\n--------------Testing KThread.join finished------------------\n");
     }
 
     private static final char dbgThread = 't';
