@@ -365,6 +365,17 @@ public class UserProcess {
         return writtenByte;
     }
 
+    private int handleRead(int fd, int buffer, int count) {
+        Lib.assertTrue(fd == 0 && count == 1);
+        if (buffer < 0) {
+            return -1;
+        }
+        OpenFile openFile = UserKernel.console.openForReading();
+        byte[] b = new byte[1];
+        openFile.read(b, 0, 1);
+        return writeVirtualMemory(buffer, b) == 1 ? 1 : -1;
+    }
+
 
     private static final int
             syscallHalt = 0,
@@ -417,7 +428,7 @@ public class UserProcess {
             case syscallJoin:
                 return -1;
             case syscallRead:
-                return -1;
+                return handleRead(a0, a1, a2);
             case syscallWrite:
                 return handleWrite(a0, a1, a2);
             default:
