@@ -17,18 +17,15 @@ public class Alarm {
      */
     public Alarm() {
         pending = new TreeSet<>();
-        Machine.timer().setInterruptHandler(new Runnable() {
-
-            public void run() {
-                boolean origState = Machine.interrupt().disable();
-                if(pending.size() > 0 && pending.first().time <= Machine.timer().getTime()) {
-                    Alarm.PendingAlarm pendingAlarm = pending.first();
-                    pendingAlarm.getHandler().ready();
-                    pending.remove(pendingAlarm);
-                }
-                Machine.interrupt().restore(origState);
-                timerInterrupt();
+        Machine.timer().setInterruptHandler(() -> {
+            boolean origState = Machine.interrupt().disable();
+            if(pending.size() > 0 && pending.first().time <= Machine.timer().getTime()) {
+                PendingAlarm pendingAlarm = pending.first();
+                pendingAlarm.getHandler().ready();
+                pending.remove(pendingAlarm);
             }
+            Machine.interrupt().restore(origState);
+            timerInterrupt();
         });
     }
 
@@ -78,32 +75,25 @@ public class Alarm {
     }
 
 
-    private class PendingAlarm implements Comparable {
+    private class PendingAlarm implements Comparable<PendingAlarm> {
         PendingAlarm(long time, KThread handler) {
             this.time = time;
             this.handler = handler;
             this.id = numPendingAlarmsCreated++;
         }
 
-        public int compareTo(Object o) {
-            Alarm.PendingAlarm toOccur = (Alarm.PendingAlarm) o;
-
+        public int compareTo(PendingAlarm toOccur) {
             // can't return 0 for unequal objects, so check all fields
             if (time < toOccur.time)
                 return -1;
             else if (time > toOccur.time)
                 return 1;
-            else if (id < toOccur.id)
-                return -1;
-            else if (id > toOccur.id)
-                return 1;
-            else
-                return 0;
+            else return Long.compare(id, toOccur.id);
         }
 
         long time;
         KThread handler;
-        private long id;
+        private final long id;
 
         public KThread getHandler() {
             return handler;
@@ -128,8 +118,8 @@ public class Alarm {
                     + " Difference: " + (end - start));
         }
 
-        private int which;
-        private long duration;
+        private final int which;
+        private final long duration;
     }
 
     /**
@@ -152,6 +142,6 @@ public class Alarm {
     }
 
     int numPendingAlarmsCreated = 0;
-    private TreeSet<Alarm.PendingAlarm> pending;
+    private final TreeSet<Alarm.PendingAlarm> pending;
 
 }

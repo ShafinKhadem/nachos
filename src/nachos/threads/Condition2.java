@@ -66,14 +66,13 @@ public class Condition2 {
     }
 
     public static void selfTest() {
-        System.out.println("\n--------------Testing Condition2 ------------------\n");
+        System.out.println("\n--------------Testing Condition2 initiated------------------\n");
 
         Lock lock = new Lock();
         Condition2 con = new Condition2(lock);
 
         KThread sleep = new KThread(() -> {
             lock.acquire();
-            System.out.println("TESTING SLEEP");
             System.out.println("Test 1:\n...Going to sleep.....\n");
             con.sleep();
             System.out.println("Test 2 Complete: Woke up!\n");
@@ -81,50 +80,48 @@ public class Condition2 {
         });
         sleep.fork();
 
-        KThread wake = new KThread(() -> {
+        new KThread(() -> {
             lock.acquire();
-            System.out.println("TESTING WAKE");
             System.out.println("Test 2:\n...Waking a thread...\n");
             con.wake();
             lock.release();
-        });
-        wake.fork();
+        }).fork();
 
         sleep.join();
 
-        System.out.println("\nTEST 3: SLEEP AND WAKEALL");
+        System.out.println("\nTest 3: sleep AND wakeAll\n");
         KThread sleep1 = new KThread(() -> {
             lock.acquire();
-            System.out.println("\n...Sleep1 going to sleep...\n");
+            System.out.println("...Sleep1 going to sleep...");
             con.sleep();
-            System.out.println("Test 3: Sleep1 waking up!");
+            System.out.println("Sleep1 waking up!");
             lock.release();
         });
         sleep1.fork();
 
         KThread sleep2 = new KThread(() -> {
             lock.acquire();
-            System.out.println("\n...Sleep2 going to sleep...\n");
+            System.out.println("...Sleep2 going to sleep...");
             con.sleep();
-            System.out.println("Test 3: Sleep2 waking up!");
+            System.out.println("Sleep2 waking up!");
             lock.release();
         });
         sleep2.fork();
 
-        KThread wakeall = new KThread(() -> {
+        new KThread(() -> {
             lock.acquire();
             System.out.println("\n...Waking all sleeping threads...\n");
             con.wakeAll();
             lock.release();
-        });
-        wakeall.fork();
+        }).fork();
 
         sleep1.join();
         sleep2.join();
 
-        System.out.println("Test 3 Complete: Everyone is awake!");
+        System.out.println("\nTest 3 Complete: Everyone is awake!");
+        System.out.println("\n--------------Testing Condition2 finished------------------\n");
     }
 
-    private Lock conditionLock;
-    private LinkedList<KThread> waitQueue;
+    private final Lock conditionLock;
+    private final LinkedList<KThread> waitQueue;
 }
