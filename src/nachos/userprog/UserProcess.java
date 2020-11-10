@@ -23,6 +23,7 @@ public class UserProcess {
      * Allocate a new process.
      */
     public UserProcess() {
+        if (!rootProcessCreated) isRootProcess = rootProcessCreated = true;
         int numPhysPages = Machine.processor().getNumPhysPages();
         pageTable = new TranslationEntry[numPhysPages];
         for (int i = 0; i < numPhysPages; i++)
@@ -338,11 +339,30 @@ public class UserProcess {
      * Handle the halt() system call.
      */
     private int handleHalt() {
-
+        if (!isRootProcess) return -1;
         Machine.halt();
 
         Lib.assertNotReached("Machine.halt() did not halt machine!");
         return 0;
+    }
+
+    private int handleWrite(int fd, int buffer, int count) {
+        Lib.assertTrue(fd == 1);
+        if (buffer < 0 || count < 0) {
+            return -1;
+        }
+        OpenFile openFile = UserKernel.console.openForWriting();
+        int writtenByte = 0;
+        while (writtenByte < count) {
+            int bufSize = 1 << 10, bytesToRead = Math.min(bufSize, count - writtenByte);
+            byte[] outputBuffer = new byte[bufSize];
+            int readByte = readVirtualMemory(buffer + writtenByte, outputBuffer, 0, bytesToRead);
+            if (readByte!=bytesToRead) return -1;
+            Lib.assertTrue(openFile.write(outputBuffer, 0, readByte) != -1);
+            writtenByte += readByte;
+        }
+        openFile.close();
+        return writtenByte;
     }
 
 
@@ -399,7 +419,7 @@ public class UserProcess {
             case syscallRead:
                 return -1;
             case syscallWrite:
-                return -1;
+                return handleWrite(a0, a1, a2);
             default:
                 Lib.debug(dbgProcess, "Unknown syscall " + syscall);
                 Lib.assertNotReached("Unknown system call!");
@@ -461,4 +481,7 @@ public class UserProcess {
 
     private static final int pageSize = Processor.pageSize;
     private static final char dbgProcess = 'a';
+
+    private boolean isRootProcess = false;
+    private static boolean rootProcessCreated = false;
 }
