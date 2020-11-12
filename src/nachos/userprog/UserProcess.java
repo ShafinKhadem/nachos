@@ -275,13 +275,11 @@ public class UserProcess {
             Lib.assertTrue(writeVirtualMemory(entryOffset, stringOffsetBytes) == 4);
             stringOffsetBytes = new byte[4];
             readVirtualMemory(entryOffset, stringOffsetBytes);
-            if (name.equals("test_args_status.coff")) System.out.println(entryOffset+" "+Lib.bytesToInt(stringOffsetBytes, 0));
             entryOffset += 4;
             Lib.assertTrue(writeVirtualMemory(stringOffset, argv[i]) ==
                     argv[i].length);
             stringOffset += argv[i].length;
             Lib.assertTrue(writeVirtualMemory(stringOffset, new byte[]{0}) == 1);
-            if (name.equals("test_args_status.coff")) System.out.println(stringOffset - argv[i].length+" "+readVirtualMemoryString(stringOffset - argv[i].length, 100));
             stringOffset += 1;
         }
 

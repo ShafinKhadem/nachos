@@ -33,7 +33,7 @@ void main()
     printf("mypgr forking test_args_status.coff and joining... \n");
     execArgs[0] = "test_args_status";
     execArgs[1] = "whatever";
-    execArgs[2] = "wtf!";
+    execArgs[2] = "ok!";
     processID1 = exec("test_args_status.coff", 3, execArgs);
     join(processID1, &status1);
     printf("********* Join On Process %d Finished\nStatus Value:  %d    ***************\n", processID1, status1);
