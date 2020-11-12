@@ -4,6 +4,9 @@ import nachos.machine.*;
 import nachos.threads.*;
 import nachos.userprog.*;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+
 /**
  * A kernel that can support multiple user processes.
  */
@@ -29,6 +32,14 @@ public class UserKernel extends ThreadedKernel {
                 exceptionHandler();
             }
         });
+
+        int numPhysPages = Machine.processor().getNumPhysPages();
+        freePagesLock = new Lock();
+        freePagesLock.acquire();
+        for (int i = 0; i < numPhysPages; i++) {
+            freePages.add(i);
+        }
+        freePagesLock.release();
     }
 
     /**
@@ -109,6 +120,23 @@ public class UserKernel extends ThreadedKernel {
         super.terminate();
     }
 
+    public static ArrayList<Integer> acquirePages(int numPages) {
+        Lib.assertTrue(numPages <= Machine.processor().getNumPhysPages());
+        ArrayList<Integer> ret = new ArrayList<>();
+        freePagesLock.acquire();
+        for (int i = 0; i < numPages; i++) {
+            ret.add(freePages.removeFirst());
+        }
+        freePagesLock.release();
+        return ret;
+    }
+
+    public static void returnPages(ArrayList<Integer> pages) {
+        freePagesLock.acquire();
+        freePages.addAll(pages);
+        freePagesLock.release();
+    }
+
     /**
      * Globally accessible reference to the synchronized console.
      */
@@ -116,4 +144,7 @@ public class UserKernel extends ThreadedKernel {
 
     // dummy variables to make javac smarter
     private static Coff dummy1 = null;
+
+    private static Lock freePagesLock;  // you will get null pointer exception if you new Lock() before initialize()
+    private static final LinkedList<Integer> freePages = new LinkedList<>();
 }

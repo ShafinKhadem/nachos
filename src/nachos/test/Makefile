@@ -13,7 +13,7 @@ GCCDIR = $(ARCHDIR)/mips-
 
 ASFLAGS = -mips1
 CPPFLAGS =
-CFLAGS = -O2 -B$(ARCHDIR) -G 0 -Wa,-mips1 -nostdlib -ffreestanding
+CFLAGS = -O0 -B$(ARCHDIR) -G 0 -Wa,-mips1 -nostdlib -ffreestanding
 LDFLAGS = -s -T script -N -warn-common -warn-constructors -warn-multiple-gp
 
 CC = $(GCCDIR)gcc
@@ -30,7 +30,7 @@ STDLIB_O = start.o stdio.o stdlib.o
 LIB = assert atoi printf readline stdio strncmp strcat strcmp strcpy strlen memcpy memset
 NLIB = libnachos.a
 
-TARGETS = halt sh matmult sort echo cat cp mv rm mypgr #chat chatserver
+TARGETS = halt sh matmult sort echo cat cp mv rm mypgr test_args_status #chat chatserver
 
 .SECONDARY: $(patsubst %.c,%.o,$(wildcard *.c))
 
