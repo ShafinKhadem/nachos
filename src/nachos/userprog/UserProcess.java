@@ -388,6 +388,7 @@ public class UserProcess {
         OpenFile openFile = UserKernel.console.openForReading();
         byte[] b = new byte[1];
         openFile.read(b, 0, 1);
+        openFile.close();
         return writeVirtualMemory(buffer, b) == 1 ? 1 : -1;
     }
 
